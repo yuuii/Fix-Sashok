@@ -184,12 +184,25 @@ if($useban)
         while($max2--)
         $password2.=$chars2[rand(0,$size2)];
 		
-		$sessid = "token:".$password.":".$password2;
-		
-        $stmt = $db->prepare("INSERT INTO usersession (user,session,md5) VALUES (:login,'$sessid',:md5) ON DUPLICATE KEY UPDATE session='$sessid'");
+		$sessid = "token:".$password.":".$password2; 
+        $stmt = $db->prepare("SELECT id,user FROM usersession WHERE user= :login");
 		$stmt->bindValue(':login', $realUser);
-		$stmt->bindValue(':md5',   md5($realUser));
 		$stmt->execute();
+		$realUs = $stmt->fetch(PDO::FETCH_ASSOC);
+		if($login == $realUs['user'])
+		{
+			$stmt = $db->prepare("UPDATE usersession SET session = '$sessid' WHERE user= :login");
+			$stmt->bindValue(':login', $realUser);
+			$stmt->execute();
+		}
+		else
+		{
+			$stmt = $db->prepare("INSERT INTO usersession (user, session, md5) VALUES (:login, '$sessid', :md5)");
+			$stmt->bindValue(':login', $login);
+			$stmt->bindValue(':md5', md5($realUser));
+			$stmt->execute();
+		}
+
     	$md5us = md5($realUser);
         $md5user  = strtoint(xorencode($md5us, $protectionKey));
         $md5zip	  = @md5_file("clients/".$client."/config.zip");
